@@ -7,104 +7,101 @@ class Auth extends CI_Controller {
 	{
 		parent::__construct();
 		$this->load->model('m_read');
-		dia_login();
+		// dia_login();
 	}
 
 	public function index()
 	{
 		$data['title'] = "login page";
-		$this->load->view('auth/partial/header', $data);
-		$this->load->view('auth/login', $data);
-		$this->load->view('auth/partial/footer', $data);
+		// $this->load->view('auth/partial/header', $data);
+		$this->load->view('auth/pages/login', $data);
+		// $this->load->view('auth/partial/footer', $data);
 	}
 	public function register_page()
 	{
 		$data['title'] = "register page";
-		$this->load->view('auth/partial/header', $data);
-		$this->load->view('auth/register', $data);
-		$this->load->view('auth/partial/footer', $data);
-	}
-	public function login(){
-		$username = $this->input->post('username');
-		$password = $this->input->post('password');
+		$data['negara']=$this->db->query("SELECT * FROM tb_negara")->result_array();
+		$data['tbank']=$this->db->query("SELECT * FROM tb_bank")->result_array();
 
-		if($username != null && $password != null){
-			$cek_data = $this->m_read->baca_by_param('tbl_petugas', 'username', $username);
-			$adagak = $cek_data->num_rows();
-			if($adagak > 0 ){
-				$ambil_data = $cek_data->row();
-				if($ambil_data->password == $password){
-					$data_session = [
-						'id_petugas' => $ambil_data->id_petugas,
-						'username' => $ambil_data->username,
-						'level' => $ambil_data->level,
-						'is_login' => TRUE
-					];
-					$this->session->set_userdata($data_session);
-					$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Berhasil Login</div>');
-					redirect('admin');
-				}else{
-					$this->session->set_flashdata('error', '<div class="alert alert-danger" role="alert">password salah</div>');
+
+		$this->load->view('auth/pages/register', $data);
+	}
+	public function login()
+	{
+		if (isset($_POST['login'])) {
+			$email    = $this->input->post('email', true);
+			$password = $this->input->post('password', true);
+
+			// Query dengan Active Record (lebih aman)
+			$this->db->where('username', $email);
+			$this->db->or_where('email', $email);
+			$query = $this->db->get('tb_user');
+
+			// var_dump($query->row_array());
+
+			if ($query->num_rows() == 0) {
+				$this->session->set_flashdata('error', 
+					'<div class="alert alert-danger" role="alert">Username/Email belum terdaftar!</div>');
+				redirect('auth');
+			} else {
+				$user = $query->row_array();
+
+				// Jika pakai password hash
+				if ($password !== $user['password']) {
+					$this->session->set_flashdata('error', 
+						'<div class="alert alert-danger" role="alert">Password salah!</div>');
 					redirect('auth');
-				}
-			}else{
-				$cek_data = $this->m_read->baca_by_param('tbl_pegawai', 'username', $username);
-				$adagak = $cek_data->num_rows();
-				if($adagak > 0 ){
-					$ambil_data = $cek_data->row();
-					if($ambil_data->password == $password){
-						$data_session = [
-							'id_pegawai' => $ambil_data->id_pegawai,
-							'username' => $ambil_data->username,
-							'level' => 'pegawai',
-							'is_login' => TRUE
-						];
-						$this->session->set_userdata($data_session);
-						$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Berhasil Login</div>');
-						redirect('pegawai');
-					}else{
-						$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">password salah</div>');
-						redirect('auth');
-					}
-				}else{
-					$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Akun tidak ditemukan!</div>');
-					redirect('auth');
+				} else {
+					$this->session->set_userdata('idUser', $user['id_user']);
+					$this->session->set_flashdata('message', 
+						'<div class="alert alert-success" role="alert">Selamat Datang!</div>');
+					redirect('guest');
 				}
 			}
-		}else{
-			$this->session->set_flashdata('error','<div class="alert alert-danger" role="alert">Login failed, silahkan isi semua form!</div>');
-			redirect('auth');
 		}
 	}
+
 	public function register(){
-		$nik = $this->input->post('nik');
-		$name = $this->input->post('nama');
-		$username = $this->input->post('username');
-		$password = $this->input->post('password');
-		$telp = $this->input->post('telp');
-
-		$cek_data = $this->m_read->baca_by_param('tbl_masyarakat', 'nik', $nik)->num_rows();
-		if($cek_data > 0){
-			$this->session->set_flashdata('error', '<div class="alert alert-danger" role="alert">NIK sudah Terdaftar, silahkan menggunakan NIK yang lain</div>');
-			redirect('auth/register_page');	
-		}else{
-			$cek_username = $this->m_read->baca_by_param('tbl_masyarakat', 'username', $username)->num_rows();
-			if($cek_username > 0){
-				$this->session->set_flashdata('error', '<div class="alert alert-danger" role="alert">Username sudah Terdaftar, silahkan menggunakan Username yang lain</div>');
-				redirect('auth/register_page');	
+		if (isset($_POST['register'])) {
+			$date=date("dmY");
+			$time=date('s');
+			$nama=$_POST['nama'];
+			$jenisKelamin=$_POST['jenisKelamin'];
+			$tglLahir=$_POST['tahun']."-".$_POST['bulan']."-".$_POST['hari'];
+			$noHp=$_POST['kodeNegara']."".$_POST['noHp'];
+			$email=$_POST['email'];
+			$username=$_POST['username'];
+			$alamat=$_POST['alamat'];
+			$password=$_POST['password'];
+			$kPassword=$_POST['kPassword'];
+			$pertanyaan=$_POST['pertanyaan']."-".strtolower($_POST['jawaban']);		
+			$id=$date."".$_POST['hari']."".$time;
+			$idUser="US".$id;
+			$idWallet="W".$id;
+			$fotoSampul='img_sampul.png';
+			if ($jenisKelamin=='1') {
+				$fotoProfil='img_man.png';
 			}else{
-				$data = [
-					'nik' => $nik,
-					'name' => $name,
-					'username' => $username,
-					'password' => $password,
-					'telp' => $telp
-				];
-				$this->db->insert('tbl_masyarakat', $data);
-
-				$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Berhasil register, silahkan Login!</div>');
-				redirect('auth');
+				$fotoProfil='img_woman.png';
 			}
+
+			if ($_POST['bank']=='1') {
+				$bank=$_POST['namaBank'].'-'.$_POST['noRek'].'-'.$_POST['namaPemilik'];
+			}else{
+				$bank=$_POST['bank'].'-'.$_POST['noRek'].'-'.$_POST['namaPemilik'];
+			}
+
+			if ($password==$kPassword) {
+				$insert=$this->db->query("INSERT INTO `tb_user` (`id_user`, `nama_user`, `tgl_lahir`, `jenis_kelamin`, `no_hp`, `email`, `username`, `alamat`, `password`, `pertanyaan`, `foto_profil`, `foto_sampul`, `akun_bank`) VALUES ('$idUser', '$nama', '$tglLahir', '$jenisKelamin', '$noHp', '$email', '$username', '$alamat', '$password', '$pertanyaan', '$fotoProfil', '$fotoSampul','$bank')");
+				$wallet=$this->db->query("INSERT INTO `tb_wallet` (`id_wallet`, `id_user`) VALUES ('$idWallet','$idUser')");
+				if ($insert&&$wallet) { 
+					$this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Berhasil register, silahkan Login!</div>');
+					redirect('auth');
+				}
+			}else{
+				$this->session->set_flashdata('error', '<div class="alert alert-success" role="alert">User tidak terdaftar!</div>');
+				redirect('auth');
+			}		
 		}
 	}
 

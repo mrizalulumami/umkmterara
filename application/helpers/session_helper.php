@@ -14,7 +14,7 @@ function dia_login(){
         if($ci->session->userdata('level') == 'admin'){
             redirect('admin');
         }else if($ci->session->userdata('level') == 'masyarakat'){
-            redirect('masyarakat');
+            redirect('guest');
         }
         
     }
